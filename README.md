@@ -1,6 +1,6 @@
 # Thiết Lập Môi Trường CakePHP Với Docker
 
-## Thông Tin Người Tạo Tệp
+## Thông Tin Người Tạo
 
 - **Họ Và Tên**: Phạm Văn Hoàn (HoanPV)
 - **Website**: https://hoanpv.id.vn
@@ -16,6 +16,8 @@ ____
 - [Về DockerFile](#aboutDockerFile)
 - [Về Docker Compose](#aboutDockerCompose)
 - [Về File cấu hình XDebug (xdebug.ini)](#aboutXdebug)
+- [Về Make (Makefile)](#aboutMake)
+- [Một số lệnh sử dụng trong dự án (Migrations, Seed, Model, View, Controller)](#someCommand)
 
 ____
 
@@ -90,6 +92,8 @@ DockerForCakePHP/
 
 ### Bước 1: Tạo dự án cakePHP mới hoặc clone source cakePHP vào folder `cake-app`
 
+* Note: Hãy xóa file `dummy.txt` ở `cake-app/dummy.txt` trước khi thực hiện.
+
 * Trường hợp clone source cakePHP
 
     1. Clone source vào folder `cake-app`
@@ -106,13 +110,17 @@ DockerForCakePHP/
         composer update
         ```
 
-        Cài Composer:
-
-        ```bash
-        curl -s https://getcomposer.org/installer | php
-        ```
+        Cài Composer: Hãy tham khảo các bài viết khác về cách cài đặt `Composer`
 
 * Trường hợp tạo dự án cakePHP mới
+
+    * Note: 
+        * Trường hợp bạn đã cài đặt `make` và `composer` thì có thể sử dụng lệnh sau để hoàn thành bước 1 bước 2 nhanh chóng:
+
+            ```bash
+            make setup-new-project
+            ```
+        * Để hiểu được `setup-new-project` đang làm gì thì hãy tìm hiểu file `Makefile`
 
     1. Thực hiện di chuyển vào folder `cake-app`
 
@@ -146,7 +154,7 @@ DockerForCakePHP/
 
     * Cài Extenstion `PHP Debug` của `XDebug`
 
-    * Tạo file `launch.json` 
+    * Tạo file `launch.json` (nếu có file này rồi thì không cần tạo nữa)
         * Từ cửa sổ Visual Studio Code, bạn nhấn vào mục Run and Debug phía trái cửa sổ. Chọn `create a launch.json` . Sau đó file debug config .vscode/launch.json sẽ được tạo ra.
 
     * Update config của `Listen for Xdebug` thành như sau (thêm config `pathMappings` và `log`):
@@ -587,3 +595,56 @@ DockerForCakePHP/
         * Kết nối đến máy chủ gỡ lỗi ở địa chỉ `host.docker.internal` trên cổng `9003` (`xdebug.client_host` và `xdebug.client_port`).
 
         * Ghi log thông tin gỡ lỗi vào tệp `/var/log/xdebug.log` (`xdebug.log`).
+
+## <a name="aboutMake">Về Make (Makefile)</a>
+
+* `Makefile`: là một file chứa các lệnh để thực thi như: build docker, down docker, prune docker, tạo dự án, run migration, seed,...
+
+* Để sử dụng được `make` thì trước tiên cần phải cài đặt. Tùy từng hệ điều hành sẽ có cách cài khác nhau. Hãy tham khảo các bài viết khác về cách cài đặt `make`
+
+* Cú pháp để sử dụng như sau:
+
+    ```bash
+    make setup-new-project
+    ```
+
+    * Trong đó `setup-new-project` là tập hợp lệnh đã được cấu hình trong `Makefile`
+
+## <a name="someCommand">Một số lệnh sử dụng trong dự án (Migration, Seed, Model, View, Controller)</a>
+
+* CẢNH BÁO: Vì chạy ở docker nên sẽ có một số lệnh cần phải trỏ trức tiếp đến folder ở docker mới thực thi được. Vì vậy, khi `prune` thì một số file được tạo bằng cách trỏ trực tiếp đến folder ở docker thì có thể mất.
+
+* Một số lệnh của CakePHP được sử dụng(chi tiết xem thêm ở file `Makefile`):
+
+    ```
+    Tạo dự án:
+        composer create-project --prefer-dist cakephp/app:~4.0 .
+
+    Tạo file Migations:
+        bin/cake bake migration CreateUsers
+
+    Tạo file Seed:
+        bin/cake bake seed Users
+
+    Chạy Migrations:
+        docker exec cakephp-app bash -c "bin/cake migrations migrate"
+
+    Rollback Migrations:
+        docker exec cakephp-app bash -c "bin/cake migrations rollback"
+
+    Chạy Seed:
+        docker exec cakephp-app bash -c "bin/cake migrations seed"
+
+    Cài đặt Faker (thư viện data ảo):
+        cd cake-app && composer require fakerphp/faker
+
+    Tạo file Model (Users):
+        docker exec cakephp-app bash -c "bin/cake bake model Users"
+
+    Tạo file Controller (Users):
+        cd cake-app && bin/cake bake controller Users
+
+    Tạo file Template:
+        docker exec cakephp-app bash -c "bin/cake bake template Users"
+
+    ```
