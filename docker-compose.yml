@@ -1,0 +1,44 @@
+version: '3.8'
+
+volumes:
+  db-mysql-store:
+  db-sqlserver-store:
+
+networks:
+  network-app:
+    driver: bridge
+
+services:
+  cakephp-app:
+    container_name: cakephp-app
+    build: .
+    volumes:
+      - ./cake-app:/var/www/html
+    ports:
+      - 3000:80
+    networks:
+      - network-app
+
+  mysql_db:
+    image: mysql:latest
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: cakephp-app
+    ports:
+      - 3306:3306
+    volumes:
+      - db-mysql-store:/var/lib/mysql
+    networks:
+      - network-app
+
+  sql-server:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    environment:
+      SA_PASSWORD: "YourStrong!Passw0rd"
+      ACCEPT_EULA: "Y"
+    ports:
+      - 1433:1433
+    volumes:
+      - db-sqlserver-store:/var/opt/mssql
+    networks:
+      - network-app
