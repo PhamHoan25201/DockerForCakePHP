@@ -4,9 +4,10 @@ FROM --platform=linux/amd64 php:8.2.0-apache AS base
 # Đặt thư mục làm việc hiện tại trong container là /var/www/html
 WORKDIR /var/www/html
 
-# Kích hoạt module Rewrite của Apache
+# Kích hoạt module Rewrite và SSL của Apache
 # Module Rewrite cho phép bạn sử dụng các quy tắc để thay đổi URL và làm cho chúng thân thiện hơn với SEO
-RUN a2enmod rewrite
+# SSL cho phép máy chủ hỗ trợ SSL/TLS, giúp bảo mật các kết nối HTTP bằng cách mã hóa dữ liệu truyền tải giữa máy chủ và khách hàng
+RUN a2enmod rewrite ssl
 
 # Cài đặt các thư viện phụ thuộc cơ bản cho việc phát triển và biên dịch phần mềm
 # - libssl-dev                    # Thư viện phát triển cho OpenSSL (bảo mật)
@@ -20,6 +21,7 @@ RUN a2enmod rewrite
 # - unixodbc                      # Thư viện ODBC cho kết nối cơ sở dữ liệu
 # - unixodbc-dev                  # Thư viện phát triển cho ODBC
 # - libmysqlclient-dev            # Thư viện phát triển cho MySQL client
+# - openssl                       # Công cụ dòng lệnh và thư viện cho các chức năng mã hóa SSL/TLS
 # - rm -rf /var/lib/apt/lists/*   # Xóa các danh sách gói không còn cần thiết để giảm kích thước của image
 RUN apt-get update && apt-get install -y \
     libssl-dev \                   
@@ -32,7 +34,8 @@ RUN apt-get update && apt-get install -y \
     unzip zip \                 
     unixodbc \                      
     unixodbc-dev \                 
-    libmariadb-dev \          
+    libmariadb-dev \
+    openssl \          
     && rm -rf /var/lib/apt/lists/*
 
 # Thêm kho lưu trữ Microsoft và cài đặt ODBC Driver cho SQL Server
@@ -73,3 +76,16 @@ RUN pecl install xdebug \
 
 # Cấu hình XDebug (Sao chép file cấu hình XDebug từ host vào container)
 COPY ./xdebug.ini /usr/local/etc/php/conf.d/xdebug.ini
+
+# Tạo thư mục chứa chứng chỉ SSL trong container
+RUN mkdir -p /etc/ssl/private /etc/ssl/certs
+
+# Sao chép chứng chỉ SSL vào container
+COPY ./apache-config/apache-selfsigned.crt /etc/ssl/certs/apache-selfsigned.crt
+COPY ./apache-config/apache-selfsigned.key /etc/ssl/private/apache-selfsigned.key
+
+# Sao chép file cấu hình SSL từ thư mục apache-config trên máy chủ vào container
+COPY ./apache-config/default-ssl.conf /etc/apache2/sites-available/default-ssl.conf
+
+# Kích hoạt cấu hình SSL
+RUN a2ensite default-ssl.conf

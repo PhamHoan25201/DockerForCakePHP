@@ -10,7 +10,7 @@ ____
 
 # Mục lục
 
-- [Công Nghệ Được Sử Dụng](#technology)
+- [Công nghệ được sử dụng](#technology)
 - [Cấu trúc thư mục](#directoryStructure)
 - [Hướng dẫn sử dụng](#instructionsForUse)
 - [Về DockerFile](#aboutDockerFile)
@@ -18,7 +18,7 @@ ____
 - [Về File cấu hình XDebug (xdebug.ini)](#aboutXdebug)
 - [Về Make (Makefile)](#aboutMake)
 - [Một số lệnh sử dụng trong dự án (Migrations, Seed, Model, View, Controller)](#someCommand)
-
+- [Về file cấu hình Apache cho việc phục vụ trang web qua HTTPS với SSL/TLS (default-ssl.conf)](#aboutSSL)
 ____
 
 # <a name="content">Nội dung</a>
@@ -50,6 +50,34 @@ ____
 ### XDebug
 - **XDebug**: Là một tiện ích mở rộng PHP, được sử dụng để gỡ lỗi và phân tích hiệu năng mã PHP. Nó cung cấp các tính năng hữu ích như theo dõi ngăn xếp, điểm ngắt và kiểm tra biến.
 
+### Quản Lý Chứng Chỉ SSL (SSL Certificate Management) 
+
+* Cấu Hình SSL
+
+    * Chứng Chỉ SSL:
+
+        * File: apache-selfsigned.crt
+
+        * Địa Chỉ: /etc/ssl/certs/apache-selfsigned.crt
+
+        * Mục Đích: Đảm bảo bảo mật cho các kết nối HTTPS.
+
+    * Khóa SSL:
+
+        * File: apache-selfsigned.key
+
+        * Địa Chỉ: /etc/ssl/private/apache-selfsigned.key
+
+        * Mục Đích: Mã hóa và giải mã kết nối HTTPS.
+ 
+    * Cấu Hình SSL cho Apache:
+
+        * File cấu hình: default-ssl.conf
+
+        * Địa Chỉ: /etc/apache2/sites-available/default-ssl.conf
+
+        * Mục Đích: Cấu hình Apache để sử dụng chứng chỉ và khóa SSL, bảo mật kết nối HTTPS.
+
 ### Quản Lý Gói
 - **Composer**: Composer là một công cụ quản lý phụ thuộc cho PHP, cho phép quản lý các thư viện mà dự án của bạn phụ thuộc vào.
 
@@ -69,6 +97,12 @@ ____
 
 ```bash
 DockerForCakePHP/
+    ├── .vscode/
+        ├── launch.json
+    ├── apache-config/
+        ├── apache-selfsigned.crt
+        ├── apache-selfsigned.key
+        ├── default-ssl.conf
     ├── cake-app/
     ├── docker-compose.yml
     ├── Dockerfile
@@ -78,7 +112,19 @@ DockerForCakePHP/
 
 * Trong đó:
 
-    * `cake-app`: thư mục chứa source CakePHP
+    * `.vscode/`: Thư mục cấu hình cho Visual Studio Code. Chứa thông tin cấu hình và thiết lập phát triển.
+
+    * `launch.json`: File cấu hình gỡ lỗi trong VSCode. Chứa các cài đặt để kết nối và gỡ lỗi ứng dụng PHP trong môi trường Docker.
+
+    * `apache-config/`: Thư mục chứa các tập tin cấu hình cho máy chủ web Apache. Đây là nơi bạn đặt các tập tin cần thiết để cấu hình SSL và các thiết lập Apache khác.
+
+    * `apache-selfsigned.crt`: Làchứng chỉ SSL tự ký. Mục đích dùng để cung cấp mã hóa cho các kết nối HTTPS. Được sử dụng để đảm bảo an toàn cho dữ liệu truyền tải giữa máy khách và máy chủ.
+
+    * `apache-selfsigned.key`: là khóa riêng cho chứng chỉ SSL. Mục đích để được sử dụng để mã hóa và giải mã dữ liệu. Khóa này phải được bảo mật và không được chia sẻ.
+
+    * `default-ssl.conf`: là tập tin cấu hình SSL cho Apache. Mục đích để cung cấp cấu hình cần thiết để Apache hỗ trợ SSL và set ServerName. Tập tin này sẽ chứa các chỉ thị để bật SSL và chỉ định vị trí của chứng chỉ và khóa SSL và thông tin ServerName
+
+    * `cake-app/`: thư mục chứa source CakePHP
 
     * `docker-compose.yml`: là file định nghĩa cấu hình các Docker container. Giúp Docker biết được những services cần chạy hay volume, network và chạy các services đó lên cùng một lúc, chúng tách biệt với môi trường bên ngoài.
 
@@ -223,7 +269,7 @@ DockerForCakePHP/
                 'url' => env('DATABASE_URL', null),
             ],
 
-            ...
+            ..Phần còn lại..
         ],
         ```
 
@@ -261,7 +307,7 @@ DockerForCakePHP/
                     'quoteIdentifiers' => false,
                 ],
 
-                ...
+                ..Phần còn lại..
             ],
             ```
     * Tại file `config/app_local.php`, update cấu hình thành như sau:
@@ -276,7 +322,7 @@ DockerForCakePHP/
                 'url' => env('DATABASE_URL', null),
             ],
 
-            ...
+            ..Phần còn lại..
         ],
         ```
 
@@ -287,6 +333,74 @@ DockerForCakePHP/
         * Thông tin cài đặt cấu hình database có thể update ở file `docker-compose.yml`
 
         * SqlServer không thể tạo Database khi build docker. Vì vậy, hãy sử dụng tool quản trị cơ sở dữ liệu để tạo database
+
+### Bước 5: Set ServerName ở `host` (Local Development)
+
+* Một số thông tin cần nắm trước khi cấu hình:
+    * Cách tạo một chứng chỉ tự ký với OpenSSL
+        Mở Terminal và nhâp 2 command sau:
+        ```bash
+        # Tạo private key
+        openssl genpkey -algorithm RSA -out apache-selfsigned.key -pkeyopt rsa_keygen_bits:2048
+
+        # Tạo chứng chỉ tự ký
+        openssl req -x509 -new -nodes -key apache-selfsigned.key -sha256 -days 365 -out apache-selfsigned.crt -subj "/C=US/ST=Denial/L=Springfield/O=Dis/CN=localhost"
+        ```
+
+        * Tạo chứng chỉ ký chỉ có thời hạn 365 ngày. Vì vậy khi hết hạn cần phải tạo lại (Ngày tạo 17/8/2024).
+
+        * Sau khi tạo lại xong thì bỏ vào folder apache-config
+
+* Set ServerName ở `host` (Local Development)
+    * Note: 
+        * ServerName đang được set là `cakephp.local`. Nếu muốn đổi tên khác thì thay đổi ở file `default-ssl.conf` và các vị trí cấu hình ở project và cấu hình `host` ở máy chủ.
+
+        * Project đang sử dụng framework `CakePHP`
+
+    * Cấu hình cho project:
+        * Tại file `config/app.php` thực hiện thay đổi cấu hình của `fullBaseUrl` thành như sau:
+
+            ```php
+
+            'App' => [
+                ..Phần còn lại..
+
+                'fullBaseUrl' => 'https://cakephp.local',
+
+                ..Phần còn lại..
+            ],
+
+            ```
+    * Cấu hình file `host` ở máy chủ để sử dụng tên miền tùy chỉnh (Local Development):
+        * Trường hợp hệ điều hành MacOS:
+
+            1. Mở `Finder` và chọn Go > Go to Folder... (hoặc nhấn Shift + Command + G).
+
+            2. Nhập đường dẫn `/etc` và nhấn Go.
+
+            3. Tìm file hosts trong thư mục /etc.  Sử dụng BBEdit để thêm tên miền tùy chỉnh `cakephp.local` như sau:
+
+                ```host
+                127.0.0.1 cakephp.local
+                ```
+            4. Sau đó save sẽ có popup hiện yêu cầu unlock. Nhấn unlock và save. Như vậy là lưu thành công. 
+            
+            5. Thoát file host và vào lại để kiểm tra file có được save hay không.
+
+        * Trường hợp hệ điều hành Windows:
+
+            1. Mở `File Explorer`
+
+            2. Nhập đường dẫn `C:\Windows\System32\drivers\etc\hosts`
+
+            3. Mở file `host` với quyền admin và thêm tên miền tùy chỉnh như sau:
+
+                ```host
+                127.0.0.1 cakephp.local
+                ```
+            4. Save và thoát ra-> vào lại để kiểm tra file có đước save hay không.
+
+    * Sau khi set xong ServerName ở `host` thì khởi động lại docker và truy cập với URL là `https://cakephp.local:3443/`
 
 ## <a name="aboutDockerFile">Về DockerFile</a>
 
@@ -300,7 +414,9 @@ DockerForCakePHP/
 
 2. **Kích Hoạt Module Apache**
 
-    * `RUN a2enmod rewrite`: Kích hoạt module rewrite của Apache để sử dụng các quy tắc rewrite URL.
+    * `RUN a2enmod rewrite ssl`: 
+        *  `rewrite`: Kích hoạt module rewrite của Apache để sử dụng các quy tắc rewrite URL.
+        * `ssl`: Kích hoạt module ssl của Aplache để cho phép sử dụng các chứng chỉ SSL/TLS đã cài đặt (như `apache-selfsigned.crt` và `apache-selfsigned.key` ). Module này đảm bảo Apache có thể xử lý các kết nối HTTPS, sử dụng các chứng chỉ đã cung cấp.
 
 3. **Cài Đặt Các Thư Viện Phụ Thuộc Cơ Bản**
 
@@ -336,6 +452,24 @@ DockerForCakePHP/
 
     * `RUN pecl install xdebug \&& docker-php-ext-enable xdebug` : Cài đặt và kích hoạt tiện ích mở rộng XDebug đã cài đặt.
 
+11. **Tạo thư mục chứa chứng chỉ SSL trong container**
+
+    * `RUN mkdir -p /etc/ssl/private /etc/ssl/certs` : Tạo các thư mục `/etc/ssl/private` và `/etc/ssl/certs` trong container để lưu trữ các tệp chứng chỉ SSL.
+
+12. **Sao chép chứng chỉ SSL vào container**:
+
+    * `COPY ./apache-config/apache-selfsigned.crt /etc/ssl/certs/apache-selfsigned.crt`: Sao chép tệp chứng chỉ `apache-selfsigned.crt` từ thư mục `apache-config` trên máy chủ vào thư mục `/etc/ssl/certs` trong container.
+
+    * `COPY ./apache-config/apache-selfsigned.key /etc/ssl/private/apache-selfsigned.key`: Sao chép tệp khóa SSL `apache-selfsigned.key` vào thư mục `/etc/ssl/private` trong container.
+
+13. Sao chép file cấu hình SSL vào container:
+
+    * `COPY ./apache-config/default-ssl.conf /etc/apache2/sites-available/default-ssl.conf`: Sao chép file cấu hình SSL `default-ssl.conf` từ thư mục `apache-config` trên máy chủ vào thư mục `/etc/apache2/sites-available` trong container.
+
+14. Kích hoạt cấu hình SSL:
+
+    * `RUN a2ensite default-ssl.conf`: Kích hoạt cấu hình SSL bằng cách sử dụng lệnh `a2ensite`, để Apache sử dụng cấu hình SSL được định nghĩa trong `default-ssl.conf`.
+
 ### Ý nghĩa của một số lệnh được sử dụng
 
 * `docker-php-ext-install`: Đây là một script tiện ích đi kèm với các Docker image chính thức của PHP, giúp đơn giản hóa việc cài đặt các extension PHP. Lệnh này sẽ biên dịch và cài đặt các extension PHP từ nguồn.
@@ -358,6 +492,8 @@ DockerForCakePHP/
 
 2. **Thư viện SSL (libssl-dev)**
     * `libssl-dev`: Đây là thư viện phát triển cho OpenSSL, một bộ công cụ phần mềm mã nguồn mở cho các ứng dụng yêu cầu bảo mật, chẳng hạn như mã hóa dữ liệu hoặc thiết lập các kết nối an toàn qua HTTPS. Thư viện này cung cấp các tệp tiêu đề cần thiết để xây dựng các ứng dụng yêu cầu bảo mật SSL/TLS.
+
+    * `openssl`: Công cụ dòng lệnh và thư viện cho các chức năng mã hóa SSL/TLS
 
 3. **Công cụ xây dựng (build-essential, autoconf, pkg-config)**
 
@@ -453,8 +589,12 @@ DockerForCakePHP/
         build: .
         volumes:
         - ./cake-app:/var/www/html
+        - ./apache-config:/etc/apache2/sites-available
+        - ./apache-config/apache-selfsigned.crt:/etc/ssl/certs/apache-selfsigned.crt
+        - ./apache-config/apache-selfsigned.key:/etc/ssl/private/apache-selfsigned.key
         ports:
         - 3000:80
+        - 3443:443
         networks:
         - network-app
     ```
@@ -471,9 +611,17 @@ DockerForCakePHP/
 
                 * `./cake-app:/var/www/html`: Mount thư mục `./cake-app ` trên máy chủ vào thư mục `/var/www/html` trong container, nơi ứng dụng CakePHP sẽ được triển khai.
 
+                * `./apache-config:/etc/apache2/sites-available`: Mount thư mục apache-config trên máy chủ vào /etc/apache2/sites-available trong container.
+
+                * `./apache-config/apache-selfsigned.crt:/etc/ssl/certs/apache-selfsigned.crt`: Mount tệp chứng chỉ SSL từ máy chủ vào container.
+
+                * `./apache-config/apache-selfsigned.key:/etc/ssl/private/apache-selfsigned.key`: Mount tệp khóa SSL từ máy chủ vào container.
+
             * `ports:`: Ánh xạ cổng giữa máy chủ và container.
 
                 * `3000:80`: Ánh xạ cổng 3000 của máy chủ với cổng 80 của container, cho phép truy cập ứng dụng CakePHP thông qua cổng 3000 của máy chủ.
+
+                * `3443:443`: Ánh xạ cổng 3443 của máy chủ với cổng 80 của container, cho phép truy cập ứng dụng CakePHP thông qua cổng 3443 của máy chủ. (cổng mặc định cho HTTPS)
 
             * `networks:`: Kết nối dịch vụ với mạng đã định nghĩa.
                 * `network-app`: Kết nối với mạng network-app.
@@ -648,3 +796,46 @@ DockerForCakePHP/
         docker exec cakephp-app bash -c "bin/cake bake template Users"
 
     ```
+
+    ## <a name="aboutSSL">Về file cấu hình Apache cho việc phục vụ trang web qua HTTPS với SSL/TLS (default-ssl.conf)</a>
+
+    ```conf
+    <VirtualHost *:443>
+        DocumentRoot /var/www/html
+        ServerName cakephp.local
+
+        SSLEngine on
+        SSLCertificateFile /etc/ssl/certs/apache-selfsigned.crt
+        SSLCertificateKeyFile /etc/ssl/private/apache-selfsigned.key
+
+        <Directory /var/www/html>
+            AllowOverride All
+            Require all granted
+        </Directory>
+
+        ErrorLog ${APACHE_LOG_DIR}/error.log
+        CustomLog ${APACHE_LOG_DIR}/access.log combined
+    </VirtualHost>
+    ```
+    * Giải thích chi tiết:
+        * `<VirtualHost *:443>`: Định nghĩa một `Virtual Host` chạy trên cổng `443`, cổng mặc định cho HTTPS.
+
+        * `DocumentRoot /var/www/html`: Chỉ định thư mục gốc của tài liệu, nơi chứa các tệp trang web của bạn. Đây là thư mục mà Apache sẽ phục vụ nội dung từ đó.
+
+        * `ServerName cakephp.local`: Xác định tên máy chủ (hostname) mà Apache sẽ phản hồi. Điều này được sử dụng để chỉ định tên miền cho trang web.
+
+        * `SSLEngine on`: Bật SSL/TLS cho Virtual Host này, cho phép Apache xử lý các kết nối HTTPS.
+
+        * `SSLCertificateFile /etc/ssl/certs/apache-selfsigned.crt`: Chỉ định vị trí của tệp chứng chỉ SSL mà Apache sẽ sử dụng để mã hóa các kết nối.
+
+        * `SSLCertificateKeyFile /etc/ssl/private/apache-selfsigned.key`: Chỉ định vị trí của tệp khóa riêng tư (private key) tương ứng với chứng chỉ SSL.
+
+        * `<Directory /var/www/html>`: Cấu hình các quyền và cách xử lý đối với thư mục tài liệu gốc.
+
+        * `AllowOverride All`: Cho phép ghi đè các chỉ thị cấu hình trong tệp .htaccess.
+
+        * `Require all granted`: Cấp quyền truy cập cho tất cả các yêu cầu đến thư mục này.
+
+        * `ErrorLog ${APACHE_LOG_DIR}/error.log`: Định nghĩa tệp nhật ký lỗi, nơi lưu trữ các lỗi xảy ra trong quá trình vận hành.
+
+        * `CustomLog ${APACHE_LOG_DIR}/access.log combined`: Định nghĩa tệp nhật ký truy cập, nơi lưu trữ thông tin về các yêu cầu HTTP/HTTPS đến máy chủ.
